@@ -1,0 +1,164 @@
+/* General Body & Font Styling */
+body {
+    font-family: 'Inter', sans-serif;
+    background-color: #f0f2f5;
+    color: #1c1e21;
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+}
+
+/* Authentication Page Container */
+.auth-container {
+    max-width: 400px;
+    margin: 5% auto;
+    padding: 2rem;
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    text-align: center;
+}
+
+/* Main App Container */
+.container {
+    width: 90%;
+    max-width: 800px;
+    margin: 2rem auto;
+    padding: 1rem;
+}
+
+/* Navigation Bar */
+.navbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #fff;
+    padding: 0 5%;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+.nav-brand {
+    font-weight: 700;
+    font-size: 1.5rem;
+}
+.nav-links a {
+    text-decoration: none;
+    color: #4b4f56;
+    margin-left: 1.5rem;
+    font-weight: 500;
+    padding: 1.5rem 0;
+    border-bottom: 2px solid transparent;
+}
+.nav-links a:hover, .nav-links a.active {
+    color: #0c63e4;
+    border-bottom: 2px solid #0c63e4;
+}
+
+/* Headers */
+h1 {
+    font-size: 2rem;
+    font-weight: 700;
+}
+p {
+    line-height: 1.6;
+    color: #4b4f56;
+}
+.subtle {
+    font-size: 0.9rem;
+    color: #8a929f;
+}
+
+/* Forms and Buttons */
+.form-group {
+    text-align: left;
+    margin-bottom: 1rem;
+}
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+}
+input[type="text"], input[type="password"] {
+    width: 100%;
+    padding: 0.8rem;
+    border: 1px solid #dddfe2;
+    border-radius: 6px;
+    box-sizing: border-box;
+}
+.btn {
+    width: 100%;
+    padding: 0.8rem;
+    background-color: #0c63e4;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.btn:hover {
+    background-color: #0a58ca;
+}
+.input-group {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+/* Message Containers */
+.message {
+    margin-top: 1rem;
+    padding: 0.8rem;
+    border-radius: 6px;
+    display: none; /* Hidden by default */
+}
+.message.success {
+    background-color: #d1e7dd;
+    color: #0f5132;
+    display: block;
+}
+.message.error {
+    background-color: #f8d7da;
+    color: #842029;
+    display: block;
+}
+
+/* Loader Spinner */
+.loader {
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #0c63e4;
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin: 2rem auto;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+.hidden {
+    display: none;
+}
+
+/* Results Cards */
+.card {
+    background: #fff;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    margin-bottom: 1.5rem;
+}
+#results-container h2, #results-container h3 {
+    margin-top: 0;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 0.5rem;
+    color: #0c63e4;
+}
+#results-container ul {
+    padding-left: 20px;
+}
+#results-container li {
+    margin-bottom: 0.5rem;
+}

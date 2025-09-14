@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Content AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">Content AI 🚀</div>
+        <div class="nav-links">
+            <a href="{{ url_for('dashboard') }}" class="active">Dashboard</a>
+            <a href="{{ url_for('account') }}">Account</a>
+            <a href="#" id="logout-btn">Logout</a>
+        </div>
+    </nav>
+    <div class="container">
+        <header>
+            <h1>Dashboard</h1>
+            <p>Enter a keyword to generate a real-time content strategy.</p>
+        </header>
+
+        <div class="input-group">
+            <input type="text" id="keyword-input" placeholder="e.g., sustainable fashion, AI in marketing...">
+            <button id="analyze-btn" class="btn">Analyze</button>
+        </div>
+
+        <div id="loader" class="loader hidden"></div>
+        <div id="results-container">
+            <!-- AI Results will be dynamically inserted here -->
+        </div>
+    </div>
+    
+    <!-- For converting AI's Markdown response to HTML -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

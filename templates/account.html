@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Account - Content AI</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">Content AI 🚀</div>
+        <div class="nav-links">
+            <a href="{{ url_for('dashboard') }}">Dashboard</a>
+            <a href="{{ url_for('account') }}" class="active">Account</a>
+            <a href="#" id="logout-btn">Logout</a>
+        </div>
+    </nav>
+    <div class="container">
+        <header>
+            <h1>My Account</h1>
+            <p>Update your Threads Long-Lived Access Token here.</p>
+        </header>
+
+        <div class="card">
+            <h2>Threads API Token</h2>
+            <p class="subtle">Your token is encrypted and stored securely. It will expire after 60 days.</p>
+            <form id="token-form">
+                <div class="form-group">
+                    <label for="token-input">Long-Lived Access Token</label>
+                    <input type="password" id="token-input" placeholder="Pasting your token here..." required>
+                </div>
+                <button id="update-token-btn" class="btn">Save Token</button>
+            </form>
+            <div id="message-container" class="message"></div>
+        </div>
+    </div>
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
