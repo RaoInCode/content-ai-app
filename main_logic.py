@@ -251,3 +251,179 @@ def run_full_analysis(user_threads_token, keyword):
         print(f"An error occurred during analysis for '{keyword}': {e}")
         # Return an error structure that the frontend can understand
         return {"error": str(e)} 
+
+# --- THREADS / SENTIMENT HELPERS (append to main_logic.py) ---
+import threading
+from transformers import pipeline as hf_pipeline
+
+# Lazy-loaded pipeline (shared)
+_SENTIMENT_PIPELINE = None
+_PIPELINE_LOCK = threading.Lock()
+
+def _get_sentiment_pipeline():
+    """Lazily load the HuggingFace sentiment pipeline (CPU)."""
+    global _SENTIMENT_PIPELINE
+    if _SENTIMENT_PIPELINE is None:
+        with _PIPELINE_LOCK:
+            if _SENTIMENT_PIPELINE is None:
+                try:
+                    # device=-1 forces CPU usage
+                    _SENTIMENT_PIPELINE = hf_pipeline(
+                        "sentiment-analysis",
+                        model="cardiffnlp/twitter-xlm-roberta-base-sentiment",
+                        device=-1
+                    )
+                except Exception as e:
+                    raise RuntimeError(f"Failed to load sentiment model: {e}")
+    return _SENTIMENT_PIPELINE
+
+
+def get_threads_profile(access_token):
+    """Fetch /me profile from Threads Graph API."""
+    url = "https://graph.threads.net/v1.0/me"
+    params = {
+        "fields": "id,username,name,threads_profile_picture_url,threads_biography,is_eligible_for_geo_gating",
+        "access_token": access_token
+    }
+    r = requests.get(url, params=params, timeout=15)
+    try:
+        return r.json()
+    except Exception:
+        return {"error": "Invalid response from Threads API", "raw": r.text}
+
+
+def fetch_user_threads(access_token, limit=3, since=None, until="now"):
+    """Fetch the user's threads (posts). Returns parsed JSON or error."""
+    profile = get_threads_profile(access_token)
+    user_id = profile.get("id")
+    if not user_id:
+        return {"error": "Could not fetch Threads user id", "profile": profile}
+
+    params = {
+        "fields": "id,media_product_type,media_type,media_url,permalink,owner,username,text,timestamp,shortcode,thumbnail_url,children,is_quote_post,quoted_post",
+        "limit": limit,
+        "access_token": access_token
+    }
+    if since:
+        params["since"] = since
+    if until and until != "now":
+        params["until"] = until
+
+    url = f"https://graph.threads.net/v1.0/{user_id}/threads"
+    r = requests.get(url, params=params, timeout=20)
+    try:
+        out = r.json()
+    except Exception:
+        return {"error": "Invalid response from Threads API", "raw": r.text}
+    # include profile so client can display username + id w/o extra call
+    out["_profile"] = profile
+    return out
+
+
+def fetch_replies(access_token, post_id, reverse=True):
+    """Fetch replies for a given post id."""
+    params = {
+        "fields": "id,text,username,permalink,timestamp,media_product_type,media_type,media_url,shortcode,thumbnail_url,children,is_quote_post,has_replies",
+        "access_token": access_token
+    }
+    if reverse:
+        params["reverse"] = "true"
+    url = f"https://graph.threads.net/v1.0/{post_id}/replies"
+    r = requests.get(url, params=params, timeout=20)
+    try:
+        return r.json()
+    except Exception:
+        return {"error": "Invalid response from Threads API", "raw": r.text}
+
+
+def analyze_replies_sentiment(replies_list):
+    """
+    Run sentiment on replies (list of reply dicts).
+    Returns per-reply sentiment, cumulative sentiment and overall label and suggestions.
+    """
+    if not replies_list:
+        return {"error": "No replies provided."}
+
+    pipe = _get_sentiment_pipeline()
+    per_reply = []
+    sentiments_vals = []
+
+    for reply in replies_list:
+        text = reply.get("text", "") or ""
+        if not text.strip():
+            continue
+        try:
+            res = pipe(text)[0]
+            label = res.get("label", "")  # e.g., 'POSITIVE'/'NEGATIVE'/'NEUTRAL' (case may vary)
+            score = float(res.get("score", 0.0))
+            # Normalize label to uppercase for consistent logic
+            label_u = label.upper() if isinstance(label, str) else ""
+            # Mapping: positive -> +score, negative -> -score, neutral -> 0.0
+            if label_u == "POSITIVE":
+                polarity = score
+            elif label_u == "NEGATIVE":
+                polarity = -score
+            else:
+                polarity = 0.0
+
+            sentiments_vals.append(polarity)
+            per_reply.append({
+                "id": reply.get("id"),
+                "username": reply.get("username"),
+                "text": text,
+                "label": label_u,
+                "score": score,
+                "polarity": polarity,
+                "permalink": reply.get("permalink"),
+                "timestamp": reply.get("timestamp")
+            })
+        except Exception as e:
+            # If a single inference fails, continue but log an entry
+            per_reply.append({
+                "id": reply.get("id"),
+                "username": reply.get("username"),
+                "text": reply.get("text", ""),
+                "label": "ERROR",
+                "score": 0.0,
+                "polarity": 0.0,
+                "error": str(e)
+            })
+
+    if not sentiments_vals:
+        return {
+            "per_reply": per_reply,
+            "cumulative_sentiment": 0.0,
+            "overall_sentiment": "No Text Replies",
+            "recommendations": ["No replies with text found to analyze."]
+        }
+
+    cumulative = sum(sentiments_vals) / len(sentiments_vals)
+
+    if cumulative > 0.2:
+        overall = "Overall Positive"
+        recommendations = [
+            "Audience reaction looks positive — amplify this momentum.",
+            "Post a follow-up with a call-to-action (ask a question to increase replies).",
+            "Reshare high-performing parts of the post as a story with quick tips."
+        ]
+    elif cumulative < -0.2:
+        overall = "Overall Negative"
+        recommendations = [
+            "Responses are trending negative — investigate common complaint patterns in replies.",
+            "Consider addressing concerns directly in a follow-up post and offer clarification.",
+            "Use the Recommendation page to generate data-driven content adjustments."
+        ]
+    else:
+        overall = "Overall Neutral"
+        recommendations = [
+            "Reaction is neutral — consider testing variations (tone/CTA/format).",
+            "Try asking a clearer question or add visual content for increased engagement.",
+            "Visit the Recommendations page for keyword-driven ideas to reframe future posts."
+        ]
+
+    return {
+        "per_reply": per_reply,
+        "cumulative_sentiment": cumulative,
+        "overall_sentiment": overall,
+        "recommendations": recommendations
+    }

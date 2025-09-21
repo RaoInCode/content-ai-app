@@ -8,7 +8,15 @@ from dotenv import load_dotenv
 from models import db, User
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from cryptography.fernet import Fernet
-from main_logic import run_full_analysis, generate_groq_recommendations
+# existing imports...
+from main_logic import (
+    run_full_analysis,
+    generate_groq_recommendations,
+    get_threads_profile,
+    fetch_user_threads,
+    fetch_replies,
+    analyze_replies_sentiment
+)
 
 # Load environment variables from .env file for local development
 load_dotenv()
@@ -60,12 +68,14 @@ def decrypt_token(encrypted_token):
 # SECTION 1: HTML SERVING ROUTES (The Pages Users See)
 # ==============================================================================
 
+# ==============================================================================
+# SECTION 1: PAGE ROUTES (Frontend templates)
+# ==============================================================================
+
 @app.route('/')
 def index():
-    """Serves the landing page, which defaults to the login page."""
-    if current_user.is_authenticated:
-        return redirect(url_for('dashboard'))
-    return render_template('login.html')
+    """Landing/home page describing the product and options."""
+    return render_template('landing.html')
 
 @app.route('/login')
 def login():
@@ -84,7 +94,7 @@ def register():
 @app.route('/dashboard')
 @login_required
 def dashboard():
-    """Serves the main application dashboard."""
+    """Serves the main application dashboard (keyword recommendations)."""
     return render_template('dashboard.html')
 
 @app.route('/account')
@@ -92,6 +102,13 @@ def dashboard():
 def account():
     """Serves the user's account page."""
     return render_template('account.html')
+
+@app.route('/threads')
+@login_required
+def threads_page():
+    """Page where the user can analyze their Threads posts (requires login)."""
+    return render_template('threads.html')
+
 
 # ==============================================================================
 # SECTION 2: API ENDPOINTS (The Logic Behind the Forms)
@@ -151,14 +168,13 @@ def api_update_token():
         db.session.commit()
         return jsonify({"message": "Token updated successfully."}), 200
     except Exception as e:
-        # Provide a more generic error to the user for security
-        print(f"ERROR in api_update_token: {e}") # Log the specific error for your own debugging
+        print(f"ERROR in api_update_token: {e}") 
         return jsonify({"error": "An internal error occurred while saving the token."}), 500
 
 @app.route('/api/analyze', methods=['POST'])
 @login_required
 def api_analyze():
-    """The main endpoint to run the analysis for the logged-in user."""
+    """The main endpoint to run the keyword-based analysis for the logged-in user."""
     keyword = request.json.get('keyword')
     if not keyword:
         return jsonify({"error": "Keyword is required"}), 400
@@ -176,10 +192,68 @@ def api_analyze():
     
     return jsonify(analysis_data)
 
+
+# ----- NEW THREADS ANALYSIS API ENDPOINTS -----
+
+@app.route('/api/account_info', methods=['GET'])
+@login_required
+def api_account_info():
+    """Return whether the current user has a token and (if present) some profile info."""
+    if not current_user.encrypted_threads_token:
+        return jsonify({"has_token": False, "message": "No token saved."}), 200
+    try:
+        token = decrypt_token(current_user.encrypted_threads_token)
+        profile = get_threads_profile(token)
+        return jsonify({"has_token": True, "profile": profile})
+    except Exception as e:
+        return jsonify({"has_token": False, "error": str(e)}), 500
+
+
+@app.route('/api/fetch_threads', methods=['POST'])
+@login_required
+def api_fetch_threads():
+    """Fetch the current user's threads using saved token."""
+    data = request.get_json() or {}
+    limit = int(data.get("limit", 3))
+    since = data.get("since") or None
+    until = data.get("until", "now")
+
+    if not current_user.encrypted_threads_token:
+        return jsonify({"error": "Please add your Threads Access Token in the Account page first."}), 400
+    try:
+        token = decrypt_token(current_user.encrypted_threads_token)
+        threads_json = fetch_user_threads(token, limit=limit, since=since, until=until)
+        return jsonify(threads_json)
+    except Exception as e:
+        print(f"ERROR in api_fetch_threads: {e}")
+        return jsonify({"error": "An internal error occurred while fetching threads."}), 500
+
+
+@app.route('/api/analyze_post', methods=['POST'])
+@login_required
+def api_analyze_post():
+    """Fetch replies for a post and run sentiment analysis."""
+    data = request.get_json() or {}
+    post_id = data.get("post_id")
+    if not post_id:
+        return jsonify({"error": "post_id is required"}), 400
+    if not current_user.encrypted_threads_token:
+        return jsonify({"error": "Please add your Threads Access Token in the Account page first."}), 400
+    try:
+        token = decrypt_token(current_user.encrypted_threads_token)
+        replies_json = fetch_replies(token, post_id)
+        if "error" in replies_json:
+            return jsonify(replies_json), 500
+        replies_list = replies_json.get("data", [])
+        analysis = analyze_replies_sentiment(replies_list)
+        return jsonify({"replies": replies_list, "analysis": analysis})
+    except Exception as e:
+        print(f"ERROR in api_analyze_post: {e}")
+        return jsonify({"error": "An internal error occurred during sentiment analysis."}), 500
+
 # This block allows you to run the app directly using 'python app.py'
 if __name__ == '__main__':
     # Creates the database tables from your models if they don't exist yet
     with app.app_context():
         db.create_all()
     app.run(debug=True)
-

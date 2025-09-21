@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Content AI — Home</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-brand">Content AI 🚀</div>
+    <div class="nav-links">
+      {% if current_user.is_authenticated %}
+        <a href="{{ url_for('index') }}">Home</a>
+        <a href="{{ url_for('dashboard') }}">Recommendation</a>
+        <a href="{{ url_for('account') }}">Account</a>
+        <a href="#" id="logout-btn">Logout</a>
+      {% else %}
+        <a href="{{ url_for('login') }}">Login</a>
+        <a href="{{ url_for('register') }}">Register</a>
+      {% endif %}
+    </div>
+  </nav>
+
+  <div class="container">
+    <header>
+      <h1>Content AI</h1>
+      <p class="subtle">Analyze your Threads replies for sentiment, or get AI-powered keyword recommendations.</p>
+    </header>
+
+    <div class="card">
+      <h2>Choose an action</h2>
+      <p>Pick one of the flows below. If you are not logged in you'll be asked to sign in.</p>
+      <div style="display:flex; gap:1rem;">
+        <a href="{{ url_for('threads_page') }}" class="btn" style="flex:1">Analyze Threads (replies & sentiment)</a>
+        <a href="{{ url_for('dashboard') }}" class="btn" style="flex:1">Keyword Recommendations</a>
+      </div>
+    </div>
+
+    <div class="card">
+      <h3>How it works</h3>
+      <ul>
+        <li>Threads flow uses your saved Long-Lived Access Token (encrypted) to fetch posts & replies.</li>
+        <li>Replies are analyzed with a transformer sentiment model and actionable tips are shown.</li>
+        <li>Keyword flow uses live trends and an LLM to create a data-driven content strategy.</li>
+      </ul>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

@@ -34,4 +34,3 @@ class User(UserMixin, db.Model):
         Returns True if it matches, False otherwise.
         """
         return check_password_hash(self.password_hash, password)
-

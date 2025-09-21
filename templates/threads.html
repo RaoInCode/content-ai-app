@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Threads Analysis - Content AI</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="nav-brand">Content AI 🚀</div>
+    <div class="nav-links">
+      <a href="{{ url_for('dashboard') }}">Dashboard</a>
+      <a href="{{ url_for('account') }}">Account</a>
+      <a href="#" id="logout-btn">Logout</a>
+    </div>
+  </nav>
+
+  <div class="container">
+    <header>
+      <h1>Analyze Your Threads</h1>
+      <p>Use your saved token to fetch posts and analyze replies with sentiment analysis.</p>
+    </header>
+
+    <div id="threads-account" class="card">
+      <h2>Your Account</h2>
+      <div id="account-info">Loading account info...</div>
+      <button id="refresh-account-btn" class="btn" style="margin-top: 0.5rem">Refresh / Test Token</button>
+    </div>
+
+    <div class="card" id="timeline-card">
+      <h2>Fetch Posts</h2>
+      <p class="subtle">Choose timeline & limit (defaults are shown).</p>
+
+      <div>
+        <label>Limit (default 3)</label>
+        <input id="limit-input" type="number" min="1" value="3" style="width:80px;">
+        <button id="use-limit-default">Default</button>
+      </div>
+
+      <div style="margin-top:0.5rem;">
+        <label>Since (YYYY-MM-DD) (default 2023-08-20)</label>
+        <input id="since-input" type="date" value="2023-08-20">
+        <button id="use-since-default">Default</button>
+      </div>
+
+      <div style="margin-top:0.5rem;">
+        <label>Until (default now)</label>
+        <input id="until-input" type="date">
+        <button id="use-until-default">Now</button>
+      </div>
+
+      <div style="margin-top:1rem;">
+        <button id="fetch-threads-btn" class="btn">Fetch Threads</button>
+      </div>
+    </div>
+
+    <div id="threads-list" class="card">
+      <h2>Threads</h2>
+      <div id="threads-container">No threads loaded yet.</div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>
