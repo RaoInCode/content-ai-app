@@ -58,60 +58,44 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Logout Button ---
     const logoutBtn = document.getElementById('logout-btn');
     if (logoutBtn) {
-    logoutBtn.addEventListener("click", (e) => {
-      e.preventDefault();
+        logoutBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+            const confirmBox = document.createElement("div");
+            confirmBox.classList.add("confirm-modal");
+            confirmBox.innerHTML = `
+                <div class="confirm-content">
+                    <p>Are you sure you want to logout?</p>
+                    <button id="confirm-yes" class="btn btn-danger">Yes</button>
+                    <button id="confirm-cancel" class="btn btn-secondary">Cancel</button>
+                </div>
+            `;
+            document.body.appendChild(confirmBox);
 
-      // Create confirmation modal dynamically
-      const confirmBox = document.createElement("div");
-      confirmBox.classList.add("confirm-modal");
-      confirmBox.innerHTML = `
-        <div class="confirm-content">
-          <p>Are you sure you want to logout?</p>
-          <button id="confirm-yes" class="btn btn-danger">Yes</button>
-          <button id="confirm-cancel" class="btn btn-secondary">Cancel</button>
-        </div>
-      `;
-      document.body.appendChild(confirmBox);
+            document.getElementById("confirm-yes").addEventListener("click", () => {
+                fetch("/api/logout", { method: "POST" })
+                    .then(() => window.location.href = "/")
+                    .finally(() => confirmBox.remove());
+            });
 
-      // Handle button clicks
-      document.getElementById("confirm-yes").addEventListener("click", () => {
-        fetch("/api/logout", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" }
-        })
-          .then(res => res.json())
-          .then(data => {
-            window.location.href = "/"; // Redirect to landing after logout
-          })
-          .catch(err => console.error("Logout failed", err))
-          .finally(() => confirmBox.remove());
-      });
+            document.getElementById("confirm-cancel").addEventListener("click", () => {
+                confirmBox.remove();
+            });
+        });
+    }
 
-      document.getElementById("confirm-cancel").addEventListener("click", () => {
-        confirmBox.remove();
-      });
-    });
-  }
-
-    // --- Account Page: Save Token & Test Token ---
+    // --- Account Page Logic ---
     const tokenForm = document.getElementById('token-form');
     if (tokenForm) {
         tokenForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const token = document.getElementById('token-input').value;
-            
             const response = await fetch('/api/update_token', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ token })
             });
-            
             const result = await response.json();
-            if(response.ok) {
-                showMessage(result.message, 'success');
-            } else {
-                showMessage(result.error, 'error');
-            }
+            showMessage(result.message || result.error, response.ok ? 'success' : 'error');
         });
     }
 
@@ -121,13 +105,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const statusEl = document.getElementById('token-status');
             statusEl.textContent = 'Checking...';
             try {
-                const res = await fetch('/api/account_info', { method: 'GET' });
+                const res = await fetch('/api/account_info');
                 const data = await res.json();
                 if (res.ok && data.has_token) {
-                    const p = data.profile || {};
-                    statusEl.innerHTML = `<strong>${p.username || '—'}</strong> (ID: ${p.id || '—'})`;
+                    statusEl.innerHTML = `<strong>${data.profile.username}</strong> (ID: ${data.profile.id})`;
                 } else {
-                    statusEl.textContent = data.message || data.error || 'No token present.';
+                    statusEl.textContent = data.message || 'No token saved.';
                 }
             } catch (err) {
                 statusEl.textContent = 'Error checking token.';
@@ -135,16 +118,13 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- Dashboard Analysis Logic (existing) ---
+    // --- Dashboard Analysis Logic ---
     const analyzeBtn = document.getElementById('analyze-btn');
     if (analyzeBtn) {
         analyzeBtn.addEventListener('click', async () => {
             const keywordInput = document.getElementById('keyword-input');
             const keyword = keywordInput.value.trim();
-            if (!keyword) {
-                alert('Please enter a keyword.');
-                return;
-            }
+            if (!keyword) return alert('Please enter a keyword.');
 
             const loader = document.getElementById('loader');
             const resultsContainer = document.getElementById('results-container');
@@ -159,7 +139,6 @@ document.addEventListener('DOMContentLoaded', () => {
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ keyword })
                 });
-
                 const data = await response.json();
                 
                 if (response.ok) {
@@ -167,9 +146,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 } else {
                     resultsContainer.innerHTML = `<div class="card"><p class="message error">${data.error}</p></div>`;
                 }
-
             } catch (error) {
-                resultsContainer.innerHTML = `<div class="card"><p class="message error">An unexpected error occurred. Please try again.</p></div>`;
+                resultsContainer.innerHTML = `<div class="card"><p class="message error">An unexpected error occurred.</p></div>`;
             } finally {
                 loader.classList.add('hidden');
                 analyzeBtn.disabled = false;
@@ -183,7 +161,7 @@ document.addEventListener('DOMContentLoaded', () => {
         let relatedTopicsHtml = '<li>No related topics found.</li>';
         if(data.related_topics && data.related_topics.length > 0) {
             relatedTopicsHtml = data.related_topics.slice(0, 5).map(topic => 
-                `<li>${topic.topic.title} (${topic.topic.type})</li>`
+                `<li>${topic.title} (${topic.type})</li>`
             ).join('');
         }
 
@@ -193,8 +171,22 @@ document.addEventListener('DOMContentLoaded', () => {
                 `<li>${q.query} ${q.rising ? '<span style="color: #1a73e8; font-weight: bold;">(Rising!)</span>' : ''}</li>`
             ).join('');
         }
+
+        let newsHtml = '<p>No news found.</p>';
+        if (data.news_items && data.news_items.length > 0) {
+            newsHtml = '<ul class="news-list">';
+            data.news_items.slice(0, 5).forEach(item => {
+                newsHtml += `
+                    <li>
+                        <a href="${item.link}" target="_blank">${item.title}</a>
+                        <div class="news-meta">
+                            ${item.source} • ${item.date}
+                        </div>
+                    </li>`;
+            });
+            newsHtml += '</ul>';
+        }
         
-        // Use marked.js library to convert AI's markdown response into HTML
         const aiRecommendationHtml = marked.parse(data.ai_recommendation || 'No recommendation available.');
 
         resultsContainer.innerHTML = `
@@ -206,6 +198,11 @@ document.addEventListener('DOMContentLoaded', () => {
             <div class="card">
                 <h3>🤖 AI-Powered Strategy</h3>
                 ${aiRecommendationHtml}
+            </div>
+
+            <div class="card">
+                <h3>📰 Top News</h3>
+                ${newsHtml}
             </div>
             
             <div class="card">
@@ -220,29 +217,41 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
     };
 
-    // --- THREADS PAGE LOGIC (new) ---
-    const refreshAccountBtn = document.getElementById('refresh-account-btn') || document.getElementById('check-token-btn');
-    if (refreshAccountBtn) {
-        refreshAccountBtn.addEventListener('click', async () => {
-            const accountInfoEl = document.getElementById('account-info') || document.getElementById('token-status');
-            accountInfoEl.textContent = 'Checking...';
-            try {
-                const res = await fetch('/api/account_info');
-                const data = await res.json();
-                if (res.ok && data.has_token) {
-                    const p = data.profile || {};
-                    const img = p.threads_profile_picture_url ? `<img src="${p.threads_profile_picture_url}" width="48" style="border-radius:50%; margin-right:8px;">` : '';
-                    accountInfoEl.innerHTML = `${img} <strong>${p.username || '—'}</strong> (ID: ${p.id || '—'})<br>${p.threads_biography || ''}`;
-                } else {
-                    accountInfoEl.textContent = data.message || data.error || 'Token not configured.';
-                }
-            } catch (err) {
-                accountInfoEl.textContent = 'Error contacting server.';
+    // --- THREADS PAGE LOGIC ---
+    const threadsContainer = document.getElementById('threads-container');
+    
+    // Function to load account info immediately
+    const loadAccountInfo = async () => {
+        const accountInfoEl = document.getElementById('account-info');
+        if (!accountInfoEl) return;
+        
+        accountInfoEl.textContent = 'Loading account info...';
+        try {
+            const res = await fetch('/api/account_info');
+            const data = await res.json();
+            if (res.ok && data.has_token) {
+                const p = data.profile || {};
+                const img = p.threads_profile_picture_url ? `<img src="${p.threads_profile_picture_url}" width="48" style="border-radius:50%; margin-right:8px; vertical-align: middle;">` : '';
+                accountInfoEl.innerHTML = `${img} <strong>${p.username || '—'}</strong> (ID: ${p.id || '—'})<br>${p.threads_biography || ''}`;
+            } else {
+                accountInfoEl.innerHTML = `<span style="color:orange">${data.message || data.error || 'Token not configured.'}</span>`;
             }
-        });
+        } catch (err) {
+            accountInfoEl.textContent = 'Error contacting server.';
+        }
+    };
+
+    // Auto-load account info if on Threads page
+    if (document.getElementById('account-info')) {
+        loadAccountInfo();
     }
 
-    // Timeline default buttons
+    const refreshAccountBtn = document.getElementById('refresh-account-btn');
+    if (refreshAccountBtn) {
+        refreshAccountBtn.addEventListener('click', loadAccountInfo);
+    }
+
+    // Threads Logic: Timeline defaults
     const limitInput = document.getElementById('limit-input');
     const sinceInput = document.getElementById('since-input');
     const untilInput = document.getElementById('until-input');
@@ -254,34 +263,40 @@ document.addEventListener('DOMContentLoaded', () => {
     if (useSinceDefault) useSinceDefault.addEventListener('click', () => { sinceInput.value = '2023-08-20'; });
     if (useUntilDefault) useUntilDefault.addEventListener('click', () => { untilInput.value = ''; });
 
-    // Fetch threads
+    // Threads Logic: Fetch posts
     const fetchThreadsBtn = document.getElementById('fetch-threads-btn');
     if (fetchThreadsBtn) {
         fetchThreadsBtn.addEventListener('click', async () => {
-            const threadsContainer = document.getElementById('threads-container');
+            if (!threadsContainer) return;
             threadsContainer.innerHTML = 'Fetching posts...';
             fetchThreadsBtn.disabled = true;
+            
             try {
                 const payload = {
                     limit: parseInt(limitInput.value || 3),
                     since: sinceInput.value || null,
                     until: untilInput.value || 'now'
                 };
+                
                 const res = await fetch('/api/fetch_threads', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
+                
                 const data = await res.json();
+                
                 if (!res.ok) {
                     threadsContainer.innerHTML = `<p class="message error">${data.error || 'Failed to fetch threads.'}</p>`;
                     return;
                 }
+                
                 const posts = data.data || [];
                 if (!posts.length) {
                     threadsContainer.innerHTML = '<p>No posts found for that timeframe.</p>';
                     return;
                 }
+                
                 threadsContainer.innerHTML = posts.map(post => `
                     <div class="card" id="post-${post.id}">
                         <p><strong>Post ID:</strong> ${post.id}</p>
@@ -293,19 +308,21 @@ document.addEventListener('DOMContentLoaded', () => {
                     </div>
                 `).join('');
 
-                // attach analyze handlers
+                // Add event listeners to new buttons
                 document.querySelectorAll('.analyze-post-btn').forEach(btn => {
                     btn.addEventListener('click', async (e) => {
                         const postId = btn.dataset.postid;
                         const repliesEl = document.getElementById(`replies-${postId}`);
                         repliesEl.innerHTML = 'Fetching replies and analyzing...';
                         btn.disabled = true;
+                        
                         try {
                             const r = await fetch('/api/analyze_post', {
                                 method: 'POST',
                                 headers: { 'Content-Type': 'application/json' },
                                 body: JSON.stringify({ post_id: postId })
                             });
+                            
                             const result = await r.json();
                             if (!r.ok) {
                                 repliesEl.innerHTML = `<p class="message error">${result.error || 'Failed to analyze.'}</p>`;
@@ -314,13 +331,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
                             const analysis = result.analysis || {};
                             const replies = result.replies || [];
-                            // build HTML to show each reply + label
+                            
+                            // Build Reply List HTML
                             let perRepliesHtml = '';
                             if (analysis.per_reply && analysis.per_reply.length) {
-                                perRepliesHtml = '<ul>' + analysis.per_reply.map(rep => `
+                                perRepliesHtml = '<ul class="replies-list">' + analysis.per_reply.map(rep => `
                                     <li>
-                                        <strong>${rep.username}</strong>: ${rep.text} <br/>
-                                        Sentiment: ${rep.label} (score: ${rep.score ? rep.score.toFixed(2) : '—'})
+                                        <strong>${rep.username || 'User'}</strong>: ${rep.text} <br/>
+                                        <span style="font-size:0.9em; color:#666;">Sentiment: ${rep.label} (${rep.score ? rep.score.toFixed(2) : '—'})</span>
                                     </li>
                                 `).join('') + '</ul>';
                             } else if (replies.length) {
@@ -329,21 +347,26 @@ document.addEventListener('DOMContentLoaded', () => {
                                 perRepliesHtml = '<p>No replies found for this post.</p>';
                             }
 
-                            // overall summary + recommendations
+                            // Build Recommendations HTML
                             const cumulative = analysis.cumulative_sentiment || 0.0;
                             const overall = analysis.overall_sentiment || '—';
                             const recommendations = (analysis.recommendations || []).map(r => `<li>${r}</li>`).join('');
 
-                            let recommendationsHtml = `<p><strong>${overall}</strong> (score: ${cumulative.toFixed(2)})</p>
-                                <ul>${recommendations}</ul>`;
+                            let recommendationsHtml = `
+                                <div class="card" style="background:#f0f9ff; border:1px solid #bae6fd;">
+                                    <p><strong>Overall: ${overall}</strong> (Score: ${cumulative.toFixed(2)})</p>
+                                    <ul>${recommendations}</ul>
+                                </div>`;
 
-                            // if negative or neutral, include link to recommendation page
+                            // If negative/neutral, suggest the other tool
                             if (overall.toLowerCase().includes('negative') || overall.toLowerCase().includes('neutral')) {
-                                recommendationsHtml += `<p>Don't worry — try the <a href="/dashboard">Recommendations</a> flow for keyword ideas.</p>`;
+                                recommendationsHtml += `<p style="margin-top:10px;">👉 Try the <a href="/dashboard">Keyword Recommendations</a> tool for content ideas.</p>`;
                             }
 
-                            repliesEl.innerHTML = `${perRepliesHtml} <hr/> ${recommendationsHtml}`;
+                            repliesEl.innerHTML = `${perRepliesHtml} ${recommendationsHtml}`;
+                            
                         } catch (err) {
+                            console.error(err);
                             repliesEl.innerHTML = '<p class="message error">Error analyzing replies.</p>';
                         } finally {
                             btn.disabled = false;
@@ -352,15 +375,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
 
             } catch (err) {
-                document.getElementById('threads-container').innerHTML = '<p class="message error">An unexpected error occurred.</p>';
+                console.error(err);
+                if(threadsContainer) threadsContainer.innerHTML = '<p class="message error">An unexpected error occurred.</p>';
             } finally {
                 fetchThreadsBtn.disabled = false;
             }
         });
     }
-
 });
-
-
-
-

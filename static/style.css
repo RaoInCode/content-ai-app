@@ -78,13 +78,23 @@ p {
     margin-bottom: 0.5rem;
     font-weight: 500;
 }
-input[type="text"], input[type="password"] {
+
+/* UPDATED: Added number and date types for the Threads filter inputs */
+input[type="text"], input[type="password"], input[type="number"], input[type="date"] {
     width: 100%;
     padding: 0.8rem;
     border: 1px solid #dddfe2;
     border-radius: 6px;
     box-sizing: border-box;
 }
+
+/* NEW: Specific fix for the small limit input in Threads page */
+input#limit-input {
+    width: 80px;
+    display: inline-block;
+    margin-right: 10px;
+}
+
 .btn {
     width: 100%;
     padding: 0.8rem;
@@ -100,6 +110,12 @@ input[type="text"], input[type="password"] {
 .btn:hover {
     background-color: #0a58ca;
 }
+/* NEW: Style for disabled buttons (when loading) */
+.btn:disabled {
+    background-color: #8a929f;
+    cursor: not-allowed;
+}
+
 .input-group {
     display: flex;
     gap: 1rem;
@@ -162,6 +178,8 @@ input[type="text"], input[type="password"] {
 #results-container li {
     margin-bottom: 0.5rem;
 }
+
+/* Confirmation Modal */
 .confirm-modal {
   position: fixed;
   top: 0;
@@ -205,4 +223,124 @@ input[type="text"], input[type="password"] {
 .btn-secondary {
   background: #e5e7eb;
   color: #374151;
+}
+
+/* --- NEW STYLES BELOW THIS LINE --- */
+
+/* Landing Page Choices */
+.choice-card {
+    background: #fff;
+    padding: 2rem;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    margin-bottom: 1.5rem;
+    transition: transform 0.2s;
+}
+.choice-card:hover {
+    transform: translateY(-5px);
+}
+.choice-card h2 {
+    margin-top: 0;
+    color: #0c63e4;
+}
+.choice-card p {
+    color: #4b4f56;
+    margin-bottom: 1.5rem;
+}
+.choice-card a.btn {
+    display: inline-block;
+    text-decoration: none;
+    width: auto; /* Let button size to text */
+    padding: 0.8rem 2rem;
+}
+
+/* Threads & Sentiment Analysis Page Lists */
+.posts-list, .replies-list {
+    list-style: none;
+    padding: 0;
+}
+
+.posts-list li, .replies-list li {
+    background-color: #f9f9f9;
+    padding: 1rem;
+    border-radius: 6px;
+    margin-bottom: 1rem;
+    border: 1px solid #e9e9e9;
+}
+
+.posts-list li p {
+    margin: 0 0 0.5rem 0;
+}
+
+.posts-list li small {
+    color: #8a929f;
+    margin-right: 1rem;
+}
+
+/* Small Button for "Analyze Replies" */
+.btn-small {
+    padding: 0.4rem 0.8rem;
+    background-color: #e4e6eb;
+    color: #1c1e21;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-small:hover {
+    background-color: #d8dbdf;
+}
+
+.btn-small:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+/* Sentiment Colors */
+.sentiment-positive {
+    background-color: #d1e7dd;
+    border-left: 5px solid #0f5132;
+}
+
+.sentiment-neutral-negative {
+    background-color: #fff3cd;
+    border-left: 5px solid #ffc107;
+}
+
+/* --- News List Styling --- */
+.news-list {
+    list-style: none;
+    padding: 0;
+}
+
+.news-list li {
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid #eee;
+}
+
+.news-list li:last-child {
+    border-bottom: none;
+}
+
+.news-list a {
+    font-weight: 600;
+    text-decoration: none;
+    color: #1c1e21;
+    display: block;
+    margin-bottom: 0.25rem;
+}
+
+.news-list a:hover {
+    color: #0c63e4;
+    text-decoration: underline;
+}
+
+.news-meta {
+    font-size: 0.85rem;
+    color: #65676b;
 }
